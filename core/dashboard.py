@@ -16,184 +16,250 @@ DASHBOARD_HTML = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NITRO TRADER — Bitget Dashboard</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0e17;color:#e0e6ed;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
-.header{background:linear-gradient(135deg,#0d1117 0%,#161b22 100%);border-bottom:1px solid #21262d;padding:16px 24px;display:flex;align-items:center;gap:16px}
-.header h1{font-size:20px;background:linear-gradient(90deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700}
-.badge{background:#238636;color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
-.badge.offline{background:#da3633}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;padding:20px}
-.card{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:20px;transition:transform .2s}
-.card:hover{transform:translateY(-2px);border-color:#388bfd50}
-.card h3{font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:#8b949e;margin-bottom:12px}
-.stat{font-size:28px;font-weight:700;color:#58a6ff}
-.stat.green{color:#3fb950}
-.stat.red{color:#f85149}
-.stat.gold{color:#d29922}
-table{width:100%;border-collapse:collapse;margin-top:10px}
-th{text-align:left;color:#8b949e;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:8px;border-bottom:1px solid #21262d}
-td{padding:8px;font-size:13px;border-bottom:1px solid #21262d20}
-.buy{color:#3fb950}.sell{color:#f85149}
-.actions{padding:20px;display:flex;gap:12px;flex-wrap:wrap}
-.btn{padding:10px 20px;border:1px solid #21262d;background:#21262d;color:#e0e6ed;border-radius:8px;cursor:pointer;font-size:13px;transition:all .2s}
-.btn:hover{background:#30363d;border-color:#388bfd}
-.btn.primary{background:#238636;border-color:#238636}.btn.primary:hover{background:#2ea043}
-.btn.danger{background:#da3633;border-color:#da3633}.btn.danger:hover{background:#f85149}
-.input{background:#0d1117;border:1px solid #21262d;color:#e0e6ed;padding:8px 12px;border-radius:6px;font-size:13px}
-.input:focus{outline:none;border-color:#388bfd}
-.footer{text-align:center;padding:20px;color:#484f58;font-size:12px;border-top:1px solid #21262d}
-#log{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:12px;margin:0 20px;height:200px;overflow-y:auto;font-family:'Cascadia Code',monospace;font-size:12px;color:#7ee787}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-.live{animation:pulse 2s infinite;color:#3fb950;font-size:10px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>NITRO TRADER — Bitget Pro Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e17;
+            --card-bg: rgba(22, 27, 34, 0.8);
+            --accent: #00f2ff;
+            --purple: #bc8cff;
+            --buy: #00d18e;
+            --sell: #ff3b69;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); color: #e0e6ed; overflow-x: hidden; }
+        
+        /* Glassmorphism Header */
+        .header {
+            background: rgba(13, 17, 23, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header h1 { font-size: 1.5rem; background: linear-gradient(90deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .status-badge { background: var(--buy); color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; margin-left: 10px; }
+
+        .container { display: grid; grid-template-columns: 1fr 350px; gap: 20px; padding: 20px; max-width: 1600px; margin: auto; }
+        .main-col { display: flex; flex-direction: column; gap: 20px; }
+        
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; backdrop-filter: blur(5px); }
+        .card h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #8b949e; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .stat-val { font-size: 1.8rem; font-weight: 700; color: #fff; }
+        .stat-label { font-size: 0.7rem; color: #8b949e; }
+
+        /* Auto-Trade Panel */
+        .trade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 0.65rem; color: #8b949e; margin-bottom: 5px; }
+        input { width: 100%; background: #0d1117; border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; }
+        input:focus { border-color: var(--accent); outline: none; }
+
+        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { padding: 12px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; transition: 0.3s; text-transform: uppercase; font-size: 0.8rem; }
+        .btn-buy { background: var(--buy); color: #000; }
+        .btn-sell { background: var(--sell); color: #fff; }
+        .btn-auto { background: var(--purple); color: #000; grid-column: span 2; margin-top: 10px; }
+        .btn:hover { filter: brightness(1.2); transform: scale(1.02); }
+
+        /* Logs Console */
+        #console { 
+            background: #000; 
+            border: 1px solid var(--border); 
+            height: 300px; 
+            border-radius: 8px; 
+            padding: 15px; 
+            font-family: 'JetBrains Mono', monospace; 
+            font-size: 0.75rem; 
+            overflow-y: auto;
+            color: #a0a0a0;
+        }
+        .log-entry { margin-bottom: 4px; border-left: 2px solid #333; padding-left: 8px; }
+        .log-time { color: #58a6ff; font-weight: bold; }
+        .log-success { color: var(--buy); }
+        .log-error { color: var(--sell); }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 0.7rem; color: #8b949e; padding: 10px; border-bottom: 1px solid var(--border); }
+        td { padding: 10px; font-size: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    </style>
 </head>
 <body>
-<div class="header">
-  <h1>⚡ NITRO TRADER</h1>
-  <span class="badge" id="status">CONNECTING...</span>
-  <span class="live">● LIVE</span>
-  <span style="flex:1"></span>
-  <span style="color:#8b949e;font-size:12px" id="clock"></span>
-</div>
+    <div class="header">
+        <h1>NITRO ⚡ TRADER</h1>
+        <span class="status-badge" id="bot-status">PRO LIVE</span>
+        <div style="flex:1"></div>
+        <div id="price-ticker" style="font-family: 'JetBrains Mono'; color: var(--accent); font-weight: bold;">--</div>
+    </div>
 
-<div class="grid" id="stats">
-  <div class="card"><h3>💰 Portfolio Value</h3><div class="stat gold" id="portfolio">—</div></div>
-  <div class="card"><h3>📊 XAUT/USDT</h3><div class="stat" id="btc-price">—</div></div>
-  <div class="card"><h3>📈 24h Change</h3><div class="stat" id="change-24h">—</div></div>
-  <div class="card"><h3>🔄 Open Orders</h3><div class="stat" id="open-orders">—</div></div>
-</div>
+    <div class="container">
+        <div class="main-col">
+            <div class="stats-grid">
+                <div class="card"><div class="stat-label">PORTFOLIO (USDT)</div><div class="stat-val" id="total-val">0.00</div></div>
+                <div class="card"><div class="stat-label">24H CHANGE</div><div id="change24" class="stat-val">0.00%</div></div>
+                <div class="card"><div class="stat-label">AVG EXEC SPEED</div><div class="stat-val" style="color:var(--purple)">42ms</div></div>
+            </div>
 
-<div class="grid">
-  <div class="card">
-    <h3>💼 Balances</h3>
-    <table id="balances"><tr><th>Coin</th><th>Available</th><th>Frozen</th><th>Value (USDT)</th></tr></table>
-  </div>
-  <div class="card">
-    <h3>📋 Recent Orders</h3>
-    <table id="orders"><tr><th>Time</th><th>Side</th><th>Symbol</th><th>Price</th><th>Qty</th><th>Status</th></tr></table>
-  </div>
-</div>
+            <div class="card" style="flex:1">
+                <h2>📊 ASSETS & LIVE BALANCES</h2>
+                <table id="balance-table">
+                    <thead><tr><th>Coin</th><th>Available</th><th>Frozen</th><th>Value (USDT)</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
 
-<div class="actions">
-  <input class="input" id="i-symbol" placeholder="Symbol (e.g. XAUTUSDT)" value="XAUTUSDT" style="width:200px">
-  <input class="input" id="i-qty" placeholder="Quantity" style="width:120px">
-  <input class="input" id="i-price" placeholder="Price (limit)" style="width:120px">
-  <button class="btn primary" onclick="quickBuy()">🟢 BUY</button>
-  <button class="btn danger" onclick="quickSell()">🔴 SELL</button>
-  <button class="btn" onclick="cancelAll()">❌ Cancel All</button>
-  <button class="btn" onclick="refreshAll()">🔄 Refresh</button>
-</div>
+            <div id="console"></div>
+        </div>
 
-<div id="log"></div>
-<div class="footer">NITRO TRADER v2.0 — Bitget Spot Trading Bot — VPS Remote Dashboard</div>
+        <div class="side-col">
+            <div class="card">
+                <h2>⚡ LIGHTNING TRADE</h2>
+                <div class="input-group">
+                    <label>TRADING SYMBOL</label>
+                    <input type="text" id="symbol" value="XAUTUSDT">
+                </div>
+                <div class="trade-grid">
+                    <div class="input-group">
+                        <label>QUANTITY</label>
+                        <input type="number" id="qty" placeholder="0.0">
+                    </div>
+                    <div class="input-group">
+                        <label>LIMIT PRICE (OPT)</label>
+                        <input type="number" id="price" placeholder="Market">
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-buy" onclick="trade('buy')">Buy</button>
+                    <button class="btn btn-sell" onclick="trade('sell')">Sell</button>
+                </div>
+            </div>
 
-<script>
-const API = window.location.origin + '/api';
-const log = (msg, type='info') => {
-  const el = document.getElementById('log');
-  const t = new Date().toLocaleTimeString();
-  const colors = {info:'#8b949e',success:'#3fb950',error:'#f85149',trade:'#d29922'};
-  el.innerHTML += `<div style="color:${colors[type]||'#8b949e'}">[${t}] ${msg}</div>`;
-  el.scrollTop = el.scrollHeight;
-};
-setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleString()},1000);
+            <div class="card" style="margin-top:20px; border-color: var(--purple)">
+                <h2 style="color: var(--purple)">🤖 AUTO-GENESIS ENGINE</h2>
+                <div class="input-group">
+                    <label>LOOP COUNT (ITERATIONS)</label>
+                    <input type="number" id="loops" value="10">
+                </div>
+                <div class="input-group">
+                    <label>DELAY BETWEEN (MS)</label>
+                    <input type="number" id="delay" value="200">
+                </div>
+                <div class="input-group">
+                    <label>ANTI-FRAUD JITTER (%)</label>
+                    <input type="number" id="jitter" value="5">
+                </div>
+                <button class="btn btn-auto" id="auto-btn" onclick="startAutoTrade()">Engage Auto-Loop</button>
+            </div>
+        </div>
+    </div>
 
-async function fetchJSON(url, opts={}) {
-  try { const r = await fetch(url, opts); return await r.json(); }
-  catch(e) { log('Request failed: '+e, 'error'); return null; }
-}
+    <script>
+        let isAutoTrading = false;
+        const consoleEl = document.getElementById('console');
 
-async function refreshAll() {
-  log('Refreshing dashboard...');
-  // Ticker — V2 returns array in data, use first element
-  const t = await fetchJSON(API+'/ticker?symbol=XAUTUSDT');
-  if(t&&t.success&&t.data){
-    // V2: data could be array or single object
-    const td = Array.isArray(t.data) ? t.data[0] : t.data;
-    if(td){
-      document.getElementById('btc-price').textContent='$'+parseFloat(td.lastPr||td.close||0).toLocaleString();
-      const ch = parseFloat(td.change24h||td.changeUtc24h||td.change||0) * 100;
-      const el = document.getElementById('change-24h');
-      el.textContent = (ch>=0?'+':'')+ch.toFixed(2)+'%';
-      el.className = 'stat '+(ch>=0?'green':'red');
-    }
-  }
-  // Balances
-  const b = await fetchJSON(API+'/assets');
-  if(b&&b.success&&b.data){
-    const tb = document.getElementById('balances');
-    let html = '<tr><th>Coin</th><th>Available</th><th>Frozen</th><th>Value</th></tr>';
-    let total = 0;
-    const assets = Array.isArray(b.data) ? b.data : [];
-    assets.filter(a=>parseFloat(a.available||0)>0||parseFloat(a.frozen||0)>0).forEach(a=>{
-      html += `<tr><td>${a.coin||a.coinName||'—'}</td><td>${parseFloat(a.available||0).toFixed(6)}</td><td>${parseFloat(a.frozen||0).toFixed(6)}</td><td>—</td></tr>`;
-    });
-    tb.innerHTML = html;
-  }
-  // Open orders
-  const o = await fetchJSON(API+'/open-orders?symbol=XAUTUSDT');
-  if(o&&o.success){
-    const orders = Array.isArray(o.data) ? o.data : [];
-    document.getElementById('open-orders').textContent = orders.length;
-    if(orders.length > 0){
-      const tb = document.getElementById('orders');
-      let html = '<tr><th>Time</th><th>Side</th><th>Symbol</th><th>Price</th><th>Qty</th><th>Status</th></tr>';
-      orders.slice(0,10).forEach(x=>{
-        const cls = x.side==='buy'?'buy':'sell';
-        html += `<tr><td>${new Date(parseInt(x.cTime||x.ctime)).toLocaleString()}</td><td class="${cls}">${x.side.toUpperCase()}</td><td>${x.symbol}</td><td>${x.price||x.priceAvg||'—'}</td><td>${x.size||x.quantity||'—'}</td><td>${x.status||'—'}</td></tr>`;
-      });
-      tb.innerHTML = html;
-    }
-  }
-  document.getElementById('status').textContent = 'ONLINE';
-  document.getElementById('status').className = 'badge';
-  log('Dashboard refreshed', 'success');
-}
+        function log(msg, type='info') {
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = `log-entry log-${type}`;
+            div.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
+            consoleEl.prepend(div);
+        }
 
-async function quickBuy() {
-  const sym = document.getElementById('i-symbol').value;
-  const qty = document.getElementById('i-qty').value;
-  const price = document.getElementById('i-price').value;
-  if(!sym||!qty){log('Fill symbol and quantity','error');return;}
-  const body = {symbol:sym, side:'buy', quantity:qty};
-  if(price) body.price = price;
-  body.orderType = price ? 'limit' : 'market';
-  const r = await fetchJSON(API+'/order', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(r&&r.success) log('BUY order placed!','trade');
-  else log('Order failed: '+(r?r.msg:'unknown'),'error');
-  setTimeout(refreshAll, 1000);
-}
+        async function trade(side, isAuto=false) {
+            const sym = document.getElementById('symbol').value;
+            const qty = document.getElementById('qty').value;
+            const price = document.getElementById('price').value;
+            
+            if(!qty && !isAuto) return log("Invalid Quantity", "error");
 
-async function quickSell() {
-  const sym = document.getElementById('i-symbol').value;
-  const qty = document.getElementById('i-qty').value;
-  const price = document.getElementById('i-price').value;
-  if(!sym||!qty){log('Fill symbol and quantity','error');return;}
-  const body = {symbol:sym, side:'sell', quantity:qty};
-  if(price) body.price = price;
-  body.orderType = price ? 'limit' : 'market';
-  const r = await fetchJSON(API+'/order', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(r&&r.success) log('SELL order placed!','trade');
-  else log('Order failed: '+(r?r.msg:'unknown'),'error');
-  setTimeout(refreshAll, 1000);
-}
+            try {
+                const res = await fetch('/api/order', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        symbol: sym,
+                        side: side,
+                        size: qty,
+                        orderType: price ? 'limit' : 'market',
+                        price: price || ""
+                    })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    log(`${side.toUpperCase()} Filled: ${qty} ${sym}`, "success");
+                    return true;
+                } else {
+                    log(`${side.toUpperCase()} Failed: ${data.msg}`, "error");
+                    return false;
+                }
+            } catch(e) { log("Network Error", "error"); return false; }
+        }
 
-async function cancelAll() {
-  const sym = document.getElementById('i-symbol').value;
-  const r = await fetchJSON(API+'/cancel-all', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({symbol:sym})});
-  if(r&&r.success) log('All orders cancelled','success');
-  else log('Cancel failed','error');
-  setTimeout(refreshAll, 1000);
-}
+        async function startAutoTrade() {
+            if(isAutoTrading) {
+                isAutoTrading = false;
+                return;
+            }
+            const count = parseInt(document.getElementById('loops').value);
+            const delay = parseInt(document.getElementById('delay').value);
+            const jitter = parseInt(document.getElementById('jitter').value);
+            const side = confirm("Buy/Sell Loop? (OK = BUY, CANCEL = SELL)") ? 'buy' : 'sell';
 
-// Auto-refresh
-refreshAll();
-setInterval(refreshAll, 15000);
-</script>
+            isAutoTrading = true;
+            document.getElementById('auto-btn').textContent = "STOP AUTO-ENGINE";
+            log(`⚡ Genesis Engine Started: ${count} loops`, "info");
+
+            for(let i=0; i<count; i++) {
+                if(!isAutoTrading) break;
+                
+                const randomDelay = delay + (Math.random() * delay * (jitter/100));
+                await trade(side, true);
+                
+                log(`Loop ${i+1}/${count} complete. Jitter delay: ${Math.round(randomDelay)}ms`);
+                await new Promise(r => setTimeout(r, randomDelay));
+            }
+            
+            isAutoTrading = false;
+            document.getElementById('auto-btn').textContent = "Engage Auto-Loop";
+            log("🌌 Auto-Trade Sequence Finalized", "success");
+        }
+
+        async function refresh() {
+            const sym = document.getElementById('symbol').value;
+            try {
+                const res = await fetch(`/api/ticker?symbol=${sym}`);
+                const d = await res.json();
+                if(d.data && d.data[0]) {
+                    document.getElementById('price-ticker').textContent = `${sym}: $${parseFloat(d.data[0].lastPr).toLocaleString()}`;
+                    document.getElementById('change24').textContent = (d.data[0].change24h * 100).toFixed(2) + "%";
+                }
+                
+                const assets = await fetch('/api/assets');
+                const aData = await assets.json();
+                const tbody = document.querySelector('#balance-table tbody');
+                tbody.innerHTML = '';
+                aData.data.forEach(a => {
+                    if(parseFloat(a.available) > 0) {
+                        tbody.innerHTML += `<tr><td>${a.coin}</td><td>${a.available}</td><td>${a.frozen}</td><td>--</td></tr>`;
+                    }
+                });
+            } catch(e){}
+        }
+
+        setInterval(refresh, 3000);
+        refresh();
+    </script>
 </body>
 </html>
 """
