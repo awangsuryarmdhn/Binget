@@ -18,49 +18,49 @@ class BitgetAPI:
 
     BASE_URL = "https://api.bitget.com"
 
-    # ─── API Endpoints ────────────────────────────────────
+    # ─── API V2 Endpoints ────────────────────────────────
     # Public
-    EP_SERVER_TIME   = "/api/spot/v1/public/time"
-    EP_COINS         = "/api/spot/v1/public/currencies"
-    EP_SYMBOLS       = "/api/spot/v1/public/products"
-    EP_SINGLE_SYMBOL = "/api/spot/v1/public/product"
+    EP_SERVER_TIME   = "/api/v2/public/time"
+    EP_COINS         = "/api/v2/spot/public/coins"
+    EP_SYMBOLS       = "/api/v2/spot/public/symbols"
+    EP_SINGLE_SYMBOL = "/api/v2/spot/public/symbols"
 
     # Market
-    EP_TICKER        = "/api/spot/v1/market/ticker"
-    EP_ALL_TICKERS   = "/api/spot/v1/market/tickers"
-    EP_RECENT_TRADES = "/api/spot/v1/market/fills"
-    EP_CANDLES       = "/api/spot/v1/market/candles"
-    EP_DEPTH         = "/api/spot/v1/market/depth"
-    EP_MERGED_DEPTH  = "/api/spot/v1/market/merge-depth"
+    EP_TICKER        = "/api/v2/spot/market/tickers"
+    EP_ALL_TICKERS   = "/api/v2/spot/market/tickers"
+    EP_RECENT_TRADES = "/api/v2/spot/market/fills"
+    EP_CANDLES       = "/api/v2/spot/market/candles"
+    EP_DEPTH         = "/api/v2/spot/market/orderbook"
+    EP_MERGED_DEPTH  = "/api/v2/spot/market/merge-depth"
 
     # Account
-    EP_API_INFO      = "/api/spot/v1/account/getInfo"
-    EP_ASSETS        = "/api/spot/v1/account/assets"
-    EP_ASSETS_LITE   = "/api/spot/v1/account/assets-lite"
-    EP_BILLS         = "/api/spot/v1/account/bills"
+    EP_API_INFO      = "/api/v2/spot/account/info"
+    EP_ASSETS        = "/api/v2/spot/account/assets"
+    EP_ASSETS_LITE   = "/api/v2/spot/account/assets"
+    EP_BILLS         = "/api/v2/spot/account/bills"
 
     # Trade
-    EP_PLACE_ORDER   = "/api/spot/v1/trade/orders"
-    EP_BATCH_ORDER   = "/api/spot/v1/trade/batch-orders"
-    EP_CANCEL_ORDER  = "/api/spot/v1/trade/cancel-order"
-    EP_CANCEL_SYMBOL = "/api/spot/v1/trade/cancel-symbol-order"
-    EP_ORDER_DETAIL  = "/api/spot/v1/trade/orderInfo"
-    EP_OPEN_ORDERS   = "/api/spot/v1/trade/open-orders"
-    EP_ORDER_HISTORY = "/api/spot/v1/trade/history"
-    EP_FILLS         = "/api/spot/v1/trade/fills"
+    EP_PLACE_ORDER   = "/api/v2/spot/trade/place-order"
+    EP_BATCH_ORDER   = "/api/v2/spot/trade/batch-orders"
+    EP_CANCEL_ORDER  = "/api/v2/spot/trade/cancel-order"
+    EP_CANCEL_SYMBOL = "/api/v2/spot/trade/cancel-symbol-order"
+    EP_ORDER_DETAIL  = "/api/v2/spot/trade/orderInfo"
+    EP_OPEN_ORDERS   = "/api/v2/spot/trade/unfilled-orders"
+    EP_ORDER_HISTORY = "/api/v2/spot/trade/history-orders"
+    EP_FILLS         = "/api/v2/spot/trade/fills"
 
     # Plan Orders
-    EP_PLAN_ORDER       = "/api/spot/v1/plan/placePlan"
-    EP_MODIFY_PLAN      = "/api/spot/v1/plan/modifyPlan"
-    EP_CANCEL_PLAN      = "/api/spot/v1/plan/cancelPlan"
-    EP_CURRENT_PLANS    = "/api/spot/v1/plan/currentPlan"
-    EP_HISTORY_PLANS    = "/api/spot/v1/plan/historyPlan"
+    EP_PLAN_ORDER       = "/api/v2/spot/trade/place-plan-order"
+    EP_MODIFY_PLAN      = "/api/v2/spot/trade/modify-plan-order"
+    EP_CANCEL_PLAN      = "/api/v2/spot/trade/cancel-plan-order"
+    EP_CURRENT_PLANS    = "/api/v2/spot/trade/current-plan-order"
+    EP_HISTORY_PLANS    = "/api/v2/spot/trade/history-plan-order"
 
     # Wallet
-    EP_TRANSFER      = "/api/spot/v1/wallet/transfer-v2"
-    EP_DEPOSIT_ADDR  = "/api/spot/v1/wallet/deposit-address"
-    EP_WITHDRAW_LIST = "/api/spot/v1/wallet/withdrawal-list"
-    EP_DEPOSIT_LIST  = "/api/spot/v1/wallet/deposit-list"
+    EP_TRANSFER      = "/api/v2/spot/wallet/transfer"
+    EP_DEPOSIT_ADDR  = "/api/v2/spot/wallet/deposit-address"
+    EP_WITHDRAW_LIST = "/api/v2/spot/wallet/withdrawal-records"
+    EP_DEPOSIT_LIST  = "/api/v2/spot/wallet/deposit-records"
 
     def __init__(self, api_key: str, secret_key: str, passphrase: str, base_url: str = None):
         self.auth = BitgetAuth(api_key, secret_key, passphrase)
@@ -223,13 +223,13 @@ class BitgetAPI:
             "symbol": symbol,
             "side": side,
             "orderType": order_type,
-            "quantity": quantity,
+            "size": quantity,
             "force": force
         }
         if price:
             body["price"] = price
         if client_oid:
-            body["clientOrderId"] = client_oid
+            body["clientOid"] = client_oid
         return self._request("POST", self.EP_PLACE_ORDER, body=body)
 
     def place_market_buy(self, symbol: str, quantity: str) -> dict:

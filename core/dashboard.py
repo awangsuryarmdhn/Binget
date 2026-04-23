@@ -62,7 +62,7 @@ td{padding:8px;font-size:13px;border-bottom:1px solid #21262d20}
 
 <div class="grid" id="stats">
   <div class="card"><h3>💰 Portfolio Value</h3><div class="stat gold" id="portfolio">—</div></div>
-  <div class="card"><h3>📊 BTC/USDT</h3><div class="stat" id="btc-price">—</div></div>
+  <div class="card"><h3>📊 XAUT/USDT</h3><div class="stat" id="btc-price">—</div></div>
   <div class="card"><h3>📈 24h Change</h3><div class="stat" id="change-24h">—</div></div>
   <div class="card"><h3>🔄 Open Orders</h3><div class="stat" id="open-orders">—</div></div>
 </div>
@@ -79,7 +79,7 @@ td{padding:8px;font-size:13px;border-bottom:1px solid #21262d20}
 </div>
 
 <div class="actions">
-  <input class="input" id="i-symbol" placeholder="Symbol (e.g. BTCUSDT_SPBL)" value="BTCUSDT_SPBL" style="width:200px">
+  <input class="input" id="i-symbol" placeholder="Symbol (e.g. XAUTUSDT)" value="XAUTUSDT" style="width:200px">
   <input class="input" id="i-qty" placeholder="Quantity" style="width:120px">
   <input class="input" id="i-price" placeholder="Price (limit)" style="width:120px">
   <button class="btn primary" onclick="quickBuy()">🟢 BUY</button>
@@ -109,14 +109,18 @@ async function fetchJSON(url, opts={}) {
 
 async function refreshAll() {
   log('Refreshing dashboard...');
-  // Ticker
-  const t = await fetchJSON(API+'/ticker?symbol=BTCUSDT_SPBL');
-  if(t&&t.success){
-    document.getElementById('btc-price').textContent='$'+parseFloat(t.data.close).toLocaleString();
-    const ch = parseFloat(t.data.change||0);
-    const el = document.getElementById('change-24h');
-    el.textContent = (ch>=0?'+':'')+ch.toFixed(2)+'%';
-    el.className = 'stat '+(ch>=0?'green':'red');
+  // Ticker — V2 returns array in data, use first element
+  const t = await fetchJSON(API+'/ticker?symbol=XAUTUSDT');
+  if(t&&t.success&&t.data){
+    // V2: data could be array or single object
+    const td = Array.isArray(t.data) ? t.data[0] : t.data;
+    if(td){
+      document.getElementById('btc-price').textContent='$'+parseFloat(td.lastPr||td.close||0).toLocaleString();
+      const ch = parseFloat(td.change24h||td.changeUtc24h||td.change||0) * 100;
+      const el = document.getElementById('change-24h');
+      el.textContent = (ch>=0?'+':'')+ch.toFixed(2)+'%';
+      el.className = 'stat '+(ch>=0?'green':'red');
+    }
   }
   // Balances
   const b = await fetchJSON(API+'/assets');
@@ -124,21 +128,23 @@ async function refreshAll() {
     const tb = document.getElementById('balances');
     let html = '<tr><th>Coin</th><th>Available</th><th>Frozen</th><th>Value</th></tr>';
     let total = 0;
-    b.data.filter(a=>parseFloat(a.available)>0||parseFloat(a.frozen)>0).forEach(a=>{
-      html += `<tr><td>${a.coinName||a.coin}</td><td>${parseFloat(a.available).toFixed(6)}</td><td>${parseFloat(a.frozen||0).toFixed(6)}</td><td>—</td></tr>`;
+    const assets = Array.isArray(b.data) ? b.data : [];
+    assets.filter(a=>parseFloat(a.available||0)>0||parseFloat(a.frozen||0)>0).forEach(a=>{
+      html += `<tr><td>${a.coin||a.coinName||'—'}</td><td>${parseFloat(a.available||0).toFixed(6)}</td><td>${parseFloat(a.frozen||0).toFixed(6)}</td><td>—</td></tr>`;
     });
     tb.innerHTML = html;
   }
   // Open orders
-  const o = await fetchJSON(API+'/open-orders');
+  const o = await fetchJSON(API+'/open-orders?symbol=XAUTUSDT');
   if(o&&o.success){
-    document.getElementById('open-orders').textContent = o.data ? o.data.length : 0;
-    if(o.data){
+    const orders = Array.isArray(o.data) ? o.data : [];
+    document.getElementById('open-orders').textContent = orders.length;
+    if(orders.length > 0){
       const tb = document.getElementById('orders');
       let html = '<tr><th>Time</th><th>Side</th><th>Symbol</th><th>Price</th><th>Qty</th><th>Status</th></tr>';
-      o.data.slice(0,10).forEach(x=>{
+      orders.slice(0,10).forEach(x=>{
         const cls = x.side==='buy'?'buy':'sell';
-        html += `<tr><td>${new Date(parseInt(x.cTime)).toLocaleString()}</td><td class="${cls}">${x.side.toUpperCase()}</td><td>${x.symbol}</td><td>${x.price}</td><td>${x.quantity||x.size}</td><td>${x.status}</td></tr>`;
+        html += `<tr><td>${new Date(parseInt(x.cTime||x.ctime)).toLocaleString()}</td><td class="${cls}">${x.side.toUpperCase()}</td><td>${x.symbol}</td><td>${x.price||x.priceAvg||'—'}</td><td>${x.size||x.quantity||'—'}</td><td>${x.status||'—'}</td></tr>`;
       });
       tb.innerHTML = html;
     }
