@@ -1084,8 +1084,8 @@ if __name__ == "__main__":
         # Start web dashboard
         if ENABLE_WEB:
             dashboard = WebDashboard(api, WEB_PORT)
-            dashboard.start()
-            console.print(f"[green]✓ Web Dashboard: http://0.0.0.0:{WEB_PORT}[/green]")
+            dashboard.start(ssl=False) # Change to ssl=True for HTTPS
+            console.print(f"[green]✓ Web Dashboard Active on port {WEB_PORT}[/green]")
 
         console.print("[green]✓ Headless mode active — Ctrl+C to stop[/green]")
 

@@ -33,34 +33,16 @@ class BitgetAPI:
     EP_DEPTH         = "/api/v2/spot/market/orderbook"
     EP_MERGED_DEPTH  = "/api/v2/spot/market/merge-depth"
 
-    # Account
+    # Account V2
     EP_API_INFO      = "/api/v2/spot/account/info"
     EP_ASSETS        = "/api/v2/spot/account/assets"
-    EP_ASSETS_LITE   = "/api/v2/spot/account/assets"
-    EP_BILLS         = "/api/v2/spot/account/bills"
-
-    # Trade
-    EP_PLACE_ORDER   = "/api/v2/spot/trade/place-order"
-    EP_BATCH_ORDER   = "/api/v2/spot/trade/batch-orders"
-    EP_CANCEL_ORDER  = "/api/v2/spot/trade/cancel-order"
-    EP_CANCEL_SYMBOL = "/api/v2/spot/trade/cancel-symbol-order"
-    EP_ORDER_DETAIL  = "/api/v2/spot/trade/orderInfo"
-    EP_OPEN_ORDERS   = "/api/v2/spot/trade/unfilled-orders"
-    EP_ORDER_HISTORY = "/api/v2/spot/trade/history-orders"
-    EP_FILLS         = "/api/v2/spot/trade/fills"
-
-    # Plan Orders
-    EP_PLAN_ORDER       = "/api/v2/spot/trade/place-plan-order"
-    EP_MODIFY_PLAN      = "/api/v2/spot/trade/modify-plan-order"
-    EP_CANCEL_PLAN      = "/api/v2/spot/trade/cancel-plan-order"
-    EP_CURRENT_PLANS    = "/api/v2/spot/trade/current-plan-order"
-    EP_HISTORY_PLANS    = "/api/v2/spot/trade/history-plan-order"
-
-    # Wallet
+    EP_FUTURES_ACCOUNT = "/api/v2/mix/account/accounts" # USDT-M Futures
+    
+    # Internal Transfer
     EP_TRANSFER      = "/api/v2/spot/wallet/transfer"
-    EP_DEPOSIT_ADDR  = "/api/v2/spot/wallet/deposit-address"
-    EP_WITHDRAW_LIST = "/api/v2/spot/wallet/withdrawal-records"
-    EP_DEPOSIT_LIST  = "/api/v2/spot/wallet/deposit-records"
+    
+    # Symbols
+    EP_ALL_SYMBOLS   = "/api/v2/spot/public/symbols"
 
     def __init__(self, api_key: str, secret_key: str, passphrase: str, base_url: str = None):
         self.auth = BitgetAuth(api_key, secret_key, passphrase)
@@ -160,14 +142,10 @@ class BitgetAPI:
                              params={"symbol": symbol, "limit": str(limit)},
                              auth_required=False)
 
-    def get_candles(self, symbol: str, period: str = "1h",
-                    after: str = "", before: str = "", limit: int = 100) -> dict:
-        params = {"symbol": symbol, "period": period, "limit": str(limit)}
-        if after:
-            params["after"] = after
-        if before:
-            params["before"] = before
-        return self._request("GET", self.EP_CANDLES, params=params, auth_required=False)
+    def get_candles(self, symbol: str, granularity: str = "1min", limit: str = "100") -> dict:
+        """Get market candles (OHLCV)."""
+        params = {"symbol": symbol, "granularity": granularity, "limit": limit}
+        return self._request("GET", "/api/v2/spot/market/candles", params=params, auth_required=False)
 
     def get_depth(self, symbol: str, limit: int = 20, step: str = "") -> dict:
         params = {"symbol": symbol, "limit": str(limit)}
@@ -326,26 +304,23 @@ class BitgetAPI:
     # WALLET ENDPOINTS
     # ═══════════════════════════════════════════════════
 
-    def get_deposit_address(self, coin: str, chain: str = "") -> dict:
-        params = {"coin": coin}
-        if chain:
-            params["chain"] = chain
-        return self._request("GET", self.EP_DEPOSIT_ADDR, params=params)
+    def get_futures_assets(self) -> dict:
+        """Get USDT-M Futures account balances."""
+        return self._request("GET", self.EP_FUTURES_ACCOUNT, params={"productType": "umcbl"})
 
-    def get_deposit_list(self, coin: str, start_time: str = "",
-                         end_time: str = "", page_size: int = 20) -> dict:
-        params = {"coin": coin, "pageSize": str(page_size)}
-        if start_time:
-            params["startTime"] = start_time
-        if end_time:
-            params["endTime"] = end_time
-        return self._request("GET", self.EP_DEPOSIT_LIST, params=params)
+    def internal_transfer(self, from_account: str, to_account: str, coin: str, amount: str) -> dict:
+        """
+        Transfer funds between accounts.
+        from/to: spot, mix (futures), etc.
+        """
+        body = {
+            "fromAccount": from_account,
+            "toAccount": to_account,
+            "coin": coin,
+            "amount": amount
+        }
+        return self._request("POST", self.EP_TRANSFER, body=body)
 
-    def get_withdraw_list(self, coin: str, start_time: str = "",
-                          end_time: str = "", page_size: int = 20) -> dict:
-        params = {"coin": coin, "pageSize": str(page_size)}
-        if start_time:
-            params["startTime"] = start_time
-        if end_time:
-            params["endTime"] = end_time
-        return self._request("GET", self.EP_WITHDRAW_LIST, params=params)
+    def get_symbols_list(self) -> dict:
+        """Get all available spot symbols."""
+        return self._request("GET", self.EP_ALL_SYMBOLS, auth_required=False)
