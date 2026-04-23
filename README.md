@@ -6,7 +6,7 @@ A full-featured Bitget spot trading bot with a premium interactive CLI and VPS-a
 
 ```bash
 # SSH into your VPS, then:
-git clone https://github.com/YOUR_USER/Binget.git ~/nitro-trader
+git clone https://github.com/awangsuryarmdhn/Binget.git ~/nitro-trader
 cd ~/nitro-trader
 sudo bash install.sh
 ```

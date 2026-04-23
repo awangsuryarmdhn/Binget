@@ -23,7 +23,7 @@ NC='\033[0m'
 
 # ─── Config ──────────────────────────────────────
 INSTALL_DIR="$HOME/nitro-trader"
-REPO_URL="https://github.com/YOUR_USER/Binget.git"
+REPO_URL="https://github.com/awangsuryarmdhn/Binget.git"
 PYTHON_MIN="3.10"
 SERVICE_NAME="nitro-trader"
 
