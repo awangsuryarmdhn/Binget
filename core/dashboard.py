@@ -1,4 +1,5 @@
 import threading
+import time
 from flask import Flask, render_template_string, jsonify, request
 from flask_cors import CORS
 
@@ -8,138 +9,129 @@ DASHBOARD_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>NITRO GENESIS — Bitget Pro Hub</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <title>NITRO GENESIS PRO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         :root {
-            --bg: #06090f;
-            --card: rgba(13, 17, 23, 0.7);
-            --accent: #00f2ff;
-            --purple: #bc8cff;
-            --buy: #00d18e;
-            --sell: #ff3b69;
-            --border: rgba(255, 255, 255, 0.08);
-            --glass: blur(12px);
+            --bg: #06090f; --card: rgba(13, 17, 23, 0.9);
+            --accent: #00f2ff; --purple: #bc8cff;
+            --buy: #00d18e; --sell: #ff3b69;
+            --border: rgba(255, 255, 255, 0.1);
         }
-        * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter', sans-serif; }
-        body { background: var(--bg); color: #c9d1d9; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background: var(--bg); color: #c9d1d9; font-family:'Inter',sans-serif; overflow: hidden; height: 100vh; display:flex; flex-direction:column; }
         
-        .header {
-            height: 60px; background: rgba(0,0,0,0.5); backdrop-filter: var(--glass);
-            border-bottom: 1px solid var(--border); padding: 0 24px;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .header h1 { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(90deg, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        
-        .main-layout { display: flex; flex: 1; overflow: hidden; }
-        .sidebar { width: 320px; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: rgba(0,0,0,0.2); }
-        .viewport { flex: 1; display: flex; flex-direction: column; background: #000; position: relative; }
-        
-        .search-box { padding: 15px; border-bottom: 1px solid var(--border); }
-        .search-input { width: 100%; background: #161b22; border: 1px solid var(--border); padding: 10px; border-radius: 8px; color: var(--accent); font-family: 'JetBrains Mono'; }
-        
-        .tabs { display: flex; padding: 10px; gap: 5px; }
-        .tab { flex: 1; padding: 10px; text-align: center; font-size: 0.7rem; font-weight: 700; cursor: pointer; border-radius: 6px; background: rgba(255,255,255,0.03); color: #8b949e; }
-        .tab.active { background: var(--accent); color: #000; }
-        
-        .asset-list { flex: 1; overflow-y: auto; padding: 10px; }
-        .asset-item { display: flex; justify-content: space-between; padding: 12px; border-radius: 8px; margin-bottom: 5px; background: var(--card); border: 1px solid transparent; cursor: pointer; }
-        .asset-item:hover { border-color: var(--accent); }
-        .asset-name { font-weight: 700; color: #fff; font-size: 0.9rem; }
-        .asset-balance { font-family: 'JetBrains Mono'; font-size: 0.8rem; color: var(--accent); text-align: right; }
+        /* Pulse Animation */
+        @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+        .heartbeat { width: 10px; height: 10px; background: var(--buy); border-radius: 50%; display: inline-block; box-shadow: 0 0 10px var(--buy); animation: pulse 1.5s infinite; }
 
-        #chart { flex: 1; border-bottom: 1px solid var(--border); }
+        .header { height: 65px; background: #000; border-bottom: 1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding: 0 25px; z-index: 10; }
+        .header h1 { font-size: 1.1rem; font-weight: 800; background: linear-gradient(90deg, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
-        .control-bar { height: 350px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding: 20px; background: var(--bg); }
-        .panel h3 { font-size: 0.7rem; color: #8b949e; margin-bottom: 15px; }
+        .main { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 330px; border-right: 1px solid var(--border); background: #0d1117; display:flex; flex-direction:column; }
+        .viewport { flex: 1; display:flex; flex-direction:column; background: #000; }
         
-        input, select { width: 100%; background: #0d1117; border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 0.85rem; }
+        /* Stats & Chart */
+        #chart { flex: 1; background: #000; }
+        .stats-top { display:flex; gap:30px; font-size:0.8rem; font-weight:600; }
         
-        .btn { padding: 12px; border: none; border-radius: 6px; font-weight: 800; cursor: pointer; text-transform: uppercase; transition: 0.2s; }
+        .control-panel { height: 380px; display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 20px; padding: 20px; background: #06090f; border-top: 1px solid var(--border); }
+        .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; }
+        .panel h3 { font-size: 0.75rem; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+
+        input, select { background: #000; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 6px; margin-bottom: 10px; width: 100%; font-family:'JetBrains Mono'; font-size: 0.85rem; }
+        input:focus { border-color: var(--accent); outline:none; }
+        
+        .btn { padding: 12px; border:none; border-radius: 6px; font-weight:800; cursor:pointer; text-transform:uppercase; transition: 0.2s; }
         .btn-buy { background: var(--buy); color: #000; }
         .btn-sell { background: var(--sell); color: #fff; }
-        .btn-auto { background: linear-gradient(135deg, var(--accent), var(--purple)); color: #000; }
+        .btn-auto { background: linear-gradient(135deg, var(--accent), var(--purple)); color: #000; width: 100%; }
+        .btn:hover { filter: brightness(1.2); transform: scale(1.02); }
 
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: var(--bg); width: 400px; padding: 30px; border: 1px solid var(--border); border-radius: 16px; }
+        .tabs { display:flex; gap:5px; padding:15px; }
+        .tab { flex:1; text-align:center; padding:10px; font-size:0.7rem; font-weight:800; cursor:pointer; background: #161b22; border-radius: 6px; color: #8b949e; }
+        .tab.active { background: var(--accent); color: #000; }
+        
+        .asset-list { flex:1; overflow-y:auto; padding:0 15px; }
+        .asset-item { display:flex; justify-content:space-between; padding:12px; border-bottom: 1px solid var(--border); }
+        .coin-name { font-weight: 700; color: #fff; }
+        .coin-val { font-family: 'JetBrains Mono'; color: var(--accent); font-size: 0.85rem; }
 
-        #log { background: #000; color: #8b949e; font-family: 'JetBrains Mono'; font-size: 0.7rem; padding: 10px; overflow-y: auto; height: 120px; border: 1px solid var(--border); border-radius: 8px; }
+        #log-box { background: #000; flex:1; font-family: 'JetBrains Mono'; font-size: 0.7rem; color: #8b949e; overflow-y:auto; border-radius: 8px; padding: 10px; border: 1px solid #161b22; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>NITRO ⚡ GENESIS PRO</h1>
-        <div style="display:flex; gap:20px; font-size: 0.8rem;">
-            <span id="p-price" style="color:var(--accent); font-weight:800">--</span>
-            <span id="p-change" style="color:var(--buy)">0.00%</span>
+        <div style="display:flex; align-items:center; gap:12px">
+            <div class="heartbeat"></div>
+            <h1>NITRO GENESIS PRO</h1>
         </div>
-        <div style="display:flex; gap:10px">
-            <button class="btn" style="padding: 5px 15px; font-size: 0.7rem; background:#21262d" onclick="openTransfer()">Transfer</button>
+        <div class="stats-top">
+            <div id="p-sym" style="color:#fff">XAUTUSDT</div>
+            <div id="p-price" style="color:var(--accent)">$0.00</div>
+            <div id="p-change" style="color:var(--buy)">+0.00%</div>
+        </div>
+        <div>
+            <button class="btn" style="background:#21262d; font-size:0.7rem; padding: 5px 15px" onclick="openXf()">TRANSFER</button>
         </div>
     </div>
 
-    <div class="main-layout">
+    <div class="main">
         <div class="sidebar">
-            <div class="search-box"><input type="text" class="search-input" id="s-input" placeholder="Search Symbols..."></div>
             <div class="tabs">
-                <div class="tab active" id="t-spot" onclick="setAccount('spot')">SPOT</div>
-                <div class="tab" id="t-futures" onclick="setAccount('futures')">FUTURES</div>
+                <div class="tab active" id="btn-spot" onclick="setMode('spot')">SPOT</div>
+                <div class="tab" id="btn-futures" onclick="setMode('futures')">FUTURES</div>
             </div>
-            <div class="asset-list" id="asset-list"></div>
+            <div class="asset-list" id="assets-list">
+                <div style="text-align:center; padding:20px; color:#555">Loading Balances...</div>
+            </div>
         </div>
+
         <div class="viewport">
             <div id="chart"></div>
-            <div class="control-bar">
+            <div class="control-panel">
                 <div class="panel">
-                    <h3>Lightning Order <span id="c-sym" style="color:var(--accent)">XAUTUSDT</span></h3>
-                    <input type="number" id="o-qty" placeholder="Size">
-                    <input type="number" id="o-price" placeholder="Price (Market if empty)">
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
-                        <button class="btn btn-buy" onclick="trade('buy')">Buy</button>
-                        <button class="btn btn-sell" onclick="trade('sell')">Sell</button>
+                    <h3>Manual Execution</h3>
+                    <input type="number" id="manual-size" placeholder="Order Size">
+                    <input type="number" id="manual-price" placeholder="Limit Price (Auto Market if empty)">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+                        <button class="btn btn-buy" onclick="sendOrder('buy')">Buy</button>
+                        <button class="btn btn-sell" onclick="sendOrder('sell')">Sell</button>
                     </div>
                 </div>
                 <div class="panel">
-                    <h3>Auto-Genesis Core</h3>
-                    <input type="number" id="a-loops" value="10" placeholder="Loops">
-                    <input type="number" id="a-delay" value="250" placeholder="Delay MS">
-                    <button class="btn btn-auto" style="width:100%" onclick="startAuto()">Engage Auto Protocol</button>
+                    <h3>Auto Engine Core</h3>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+                        <input type="number" id="auto-loops" value="10">
+                        <input type="number" id="auto-delay" value="250">
+                    </div>
+                    <select id="auto-strat">
+                        <option value="scalp">Scalping Protocol</option>
+                        <option value="dca">DCA Strategy</option>
+                    </select>
+                    <button class="btn btn-auto" id="auto-btn" onclick="startAuto()">ENGAGE PROTOCOL</button>
                 </div>
                 <div class="panel">
-                    <h3>Execution Logs</h3>
-                    <div id="log"></div>
+                    <h3>System Logs</h3>
+                    <div id="log-box"></div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="transfer-modal">
-        <div class="modal-content">
-            <h2 style="color:#fff; margin-bottom:20px">Internal Transfer</h2>
-            <select id="xf-from"><option value="spot">Spot Account</option><option value="mix">Futures Account</option></select>
-            <div style="text-align:center; color:var(--accent); margin:10px">⬇</div>
-            <select id="xf-to"><option value="mix">Futures Account</option><option value="spot">Spot Account</option></select>
-            <input type="text" id="xf-coin" value="USDT">
-            <input type="number" id="xf-amt" placeholder="Amount">
-            <div style="display:flex; gap:10px; margin-top:20px">
-                <button class="btn btn-auto" style="flex:1" onclick="doTransfer()">Transfer</button>
-                <button class="btn" style="background:#30363d" onclick="closeTransfer()">Cancel</button>
             </div>
         </div>
     </div>
 
     <script>
-        let currentSym = 'XAUTUSDT';
-        let accountType = 'spot';
+        let symbol = 'XAUTUSDT';
+        let mode = 'spot';
         let chart, candleSeries;
 
-        function log(m, t='') {
-            const l = document.getElementById('log');
-            l.innerHTML = `<div>[${new Date().toLocaleTimeString()}] ${m}</div>` + l.innerHTML;
+        function addLog(msg, type='') {
+            const lb = document.getElementById('log-box');
+            lb.innerHTML = `<div style="margin-bottom:4px; ${type=='e'?'color:var(--sell)':''}">[${new Date().toLocaleTimeString()}] ${msg}</div>` + lb.innerHTML;
         }
 
-        function initChart() {
+        async function init() {
             chart = LightweightCharts.createChart(document.getElementById('chart'), {
                 layout: { background: { color: '#000' }, textColor: '#8b949e' },
                 grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
@@ -147,77 +139,80 @@ DASHBOARD_HTML = """
             });
             candleSeries = chart.addCandlestickSeries({ upColor: '#00d18e', downColor: '#ff3b69' });
             updateCandles();
+            updateStats();
+            updateAssets();
+            window.addEventListener('resize', () => chart.applyOptions({ width: document.getElementById('chart').clientWidth }));
         }
 
         async function updateCandles() {
-            const res = await fetch(`/api/candles?symbol=${currentSym}`);
-            const d = await res.json();
-            if(d.data) {
-                candleSeries.setData(d.data.map(c => ({
-                    time: parseInt(c[0])/1000, open:parseFloat(c[1]), high:parseFloat(c[2]), low:parseFloat(c[3]), close:parseFloat(c[4])
-                })));
-            }
+            try {
+                const res = await fetch(`/api/candles?symbol=${symbol}`);
+                const d = await res.json();
+                if(d.data) {
+                    candleSeries.setData(d.data.map(c => ({
+                        time: parseInt(c[0])/1000, 
+                        open:parseFloat(c[1]), high:parseFloat(c[2]), low:parseFloat(c[3]), close:parseFloat(c[4])
+                    })));
+                } else { addLog("Chart sync failure", "e"); }
+            } catch(e) {}
         }
 
-        async function refreshAssets() {
-            const res = await fetch(accountType === 'spot' ? '/api/assets' : '/api/assets-futures');
-            const d = await res.json();
-            const list = document.getElementById('asset-list');
-            list.innerHTML = '';
-            if(d.data) {
-                d.data.filter(a => parseFloat(a.available||a.availableBalance) > 0).forEach(a => {
-                    list.innerHTML += `<div class="asset-item"><div class="asset-name">${a.coin||a.symbol}</div><div class="asset-balance">${parseFloat(a.available||a.availableBalance).toFixed(2)}</div></div>`;
-                });
-            }
+        async function updateStats() {
+            try {
+                const res = await fetch(`/api/ticker?symbol=${symbol}`);
+                const d = await res.json();
+                if(d.data && d.data[0]) {
+                    const t = d.data[0];
+                    document.getElementById('p-price').textContent = '$' + parseFloat(t.lastPr).toLocaleString();
+                    const ch = (parseFloat(t.change24h)||0) * 100;
+                    document.getElementById('p-change').textContent = (ch>=0?'+':'') + ch.toFixed(2) + '%';
+                    document.getElementById('p-change').style.color = ch >= 0 ? 'var(--buy)' : 'var(--sell)';
+                }
+            } catch(e) {}
         }
 
-        async function refreshTicker() {
-            const res = await fetch(`/api/ticker?symbol=${currentSym}`);
-            const d = await res.json();
-            if(d.data && d.data[0]) {
-                const t = d.data[0];
-                document.getElementById('p-price').textContent = `$${parseFloat(t.lastPr).toLocaleString()}`;
-            }
+        async function updateAssets() {
+            try {
+                const url = mode === 'spot' ? '/api/assets' : '/api/assets-futures';
+                const res = await fetch(url);
+                const d = await res.json();
+                const list = document.getElementById('assets-list');
+                list.innerHTML = '';
+                if(d.data) {
+                    d.data.filter(a => parseFloat(a.available||a.availableBalance) > 0).forEach(a => {
+                        list.innerHTML += `<div class="asset-item"><span class="coin-name">${a.coin||a.symbol}</span><span class="coin-val">${parseFloat(a.available||a.availableBalance).toFixed(4)}</span></div>`;
+                    });
+                }
+            } catch(e) {}
         }
 
-        function setAccount(t) {
-            accountType = t;
-            document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
-            document.getElementById('t-'+t).classList.add('active');
-            refreshAssets();
-        }
-
-        function openTransfer() { document.getElementById('transfer-modal').style.display='flex'; }
-        function closeTransfer() { document.getElementById('transfer-modal').style.display='none'; }
-
-        async function trade(side) {
-            const qty = document.getElementById('o-qty').value;
-            const px = document.getElementById('o-price').value;
+        async function sendOrder(side) {
+            const size = document.getElementById('manual-size').value;
+            const px = document.getElementById('manual-price').value;
+            if(!size) return alert("Enter size!");
+            
+            addLog(`Sending ${side.toUpperCase()} order...`);
             const res = await fetch('/api/order', {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({symbol:currentSym, side, size:qty, price:px})
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({symbol, side, size, price: px})
             });
             const d = await res.json();
-            if(d.success) log(side.toUpperCase() + " Success");
-            else log(d.msg);
+            if(d.success) addLog("Order Filled Success!", "s");
+            else addLog("Error: " + d.msg, "e");
+            updateAssets();
         }
 
-        async function doTransfer() {
-            const body = {
-                from: document.getElementById('xf-from').value,
-                to: document.getElementById('xf-to').value,
-                coin: document.getElementById('xf-coin').value,
-                amount: document.getElementById('xf-amt').value
-            };
-            const res = await fetch('/api/transfer', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-            const d = await res.json();
-            if(d.success) { log("Transfer Success"); closeTransfer(); refreshAssets(); }
+        function setMode(m) {
+            mode = m;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('btn-'+m).classList.add('active');
+            updateAssets();
         }
 
-        initChart();
-        setInterval(refreshTicker, 2000);
-        setInterval(updateCandles, 10000);
-        refreshAssets();
+        init();
+        setInterval(updateStats, 2000);
+        setInterval(updateCandles, 5000);
+        setInterval(updateAssets, 10000);
     </script>
 </body>
 </html>
@@ -233,27 +228,29 @@ class WebDashboard:
 
     def _setup_routes(self):
         @self.app.route("/")
-        def index(): return render_template_string(DASHBOARD_HTML)
+        def index():
+            return render_template_string(DASHBOARD_HTML)
 
         @self.app.route("/api/ticker")
-        def ticker(): return jsonify(self.api.get_ticker(request.args.get("symbol", "XAUTUSDT")))
+        def ticker():
+            sym = request.args.get("symbol", "XAUTUSDT")
+            return jsonify(self.api.get_ticker(sym))
 
         @self.app.route("/api/candles")
-        def candles(): return jsonify(self.api.get_candles(request.args.get("symbol", "XAUTUSDT")))
+        def candles():
+            sym = request.args.get("symbol", "XAUTUSDT")
+            return jsonify(self.api.get_candles(sym))
 
         @self.app.route("/api/assets")
-        def assets(): return jsonify(self.api.get_assets())
+        def assets():
+            return jsonify(self.api.get_assets())
 
         @self.app.route("/api/assets-futures")
-        def futures(): return jsonify(self.api.get_futures_assets())
-
-        @self.app.route("/api/transfer", methods=["POST"])
-        def transfer():
-            d = request.json
-            return jsonify(self.api.internal_transfer(d['from'], d['to'], d['coin'], d['amount']))
+        def futures():
+            return jsonify(self.api.get_futures_assets())
 
         @self.app.route("/api/order", methods=["POST"])
-        def order():
+        def post_order():
             d = request.json
             return jsonify(self.api.place_order(symbol=d['symbol'], side=d['side'], size=d['size'], price=d.get('price')))
 
