@@ -1062,4 +1062,48 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="NITRO TRADER - Bitget Trading Bot")
+    parser.add_argument("--headless", action="store_true",
+                        help="Run in headless mode (web dashboard only, no interactive CLI)")
+    args = parser.parse_args()
+
+    if args.headless:
+        # ═══ HEADLESS MODE (for systemd / VPS background) ═══
+        load_dotenv()
+        load_config()
+        console.print("[bold cyan]NITRO TRADER v2.0 — Headless Mode[/bold cyan]")
+
+        if not API_KEY or not SECRET_KEY or not PASSPHRASE:
+            console.print("[red]Missing API credentials in .env![/red]")
+            sys.exit(1)
+
+        api = BitgetAPI(API_KEY, SECRET_KEY, PASSPHRASE)
+        console.print("[green]✓ API client initialized[/green]")
+
+        # Start web dashboard
+        if ENABLE_WEB:
+            dashboard = WebDashboard(api, WEB_PORT)
+            dashboard.start()
+            console.print(f"[green]✓ Web Dashboard: http://0.0.0.0:{WEB_PORT}[/green]")
+
+        console.print("[green]✓ Headless mode active — Ctrl+C to stop[/green]")
+
+        # Keep alive with clean shutdown
+        def signal_handler(sig, frame):
+            console.print("\n[yellow]Shutting down...[/yellow]")
+            for name, strat in strategies.items():
+                strat.stop()
+            sys.exit(0)
+
+        signal.signal(signal.SIGTERM, signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)
+
+        try:
+            while True:
+                time.sleep(60)
+        except (KeyboardInterrupt, SystemExit):
+            console.print("[cyan]NITRO TRADER stopped.[/cyan]")
+    else:
+        # ═══ INTERACTIVE MODE (normal CLI) ═══
+        main()
